@@ -15,121 +15,118 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            min-height: 100vh;
         }
 
         header {
-            background-color: #282c34;
-            padding: 20px;
-            text-align: center;
             width: 100%;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
-            margin-bottom: 40px;
+            background-color: #ffffff;
+            padding: 20px;
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            margin-bottom: 30px;
         }
 
         header h1 {
             margin: 0;
-            font-size: 36px;
-            color: white;
+            font-size: 24px;
         }
 
-        .das-green {
-            color: #28a745;
+        header h1 .das {
+            color: green;
         }
 
-        .medhub-orange {
-            color: #ff7f0e;
+        header h1 .medhub {
+            color: orange;
         }
 
-        h1 {
-            font-size: 28px;
+        #image-container {
+            margin-bottom: 20px;
+        }
+
+        #image-preview {
+            max-width: 300px;
+            max-height: 300px;
+            display: none;
+            border: 2px solid #ddd;
+            padding: 5px;
+            border-radius: 10px;
+        }
+
+        #result {
+            font-size: 18px;
             color: #333;
-            margin-bottom: 20px;
-        }
-
-        input[type="file"] {
-            margin-bottom: 20px;
-        }
-
-        button {
-            padding: 10px 20px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-
-        button:hover {
-            background-color: #218838;
-        }
-
-        #predictionResult {
             margin-top: 20px;
-            font-size: 20px;
-            color: #333;
+        }
+
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
+
     <header>
-        <h1><span class="das-green">DAS</span> <span class="medhub-orange">medhub</span></h1>
+        <h1><span class="das">DAS</span> <span class="medhub">medhub</span></h1>
     </header>
 
-    <h1>MonkeyPox Classification</h1>
-    <input type="file" id="imageUpload" accept="image/*">
-    <button id="predictButton">Predict</button>
-    <p id="predictionResult"></p>
+    <div id="image-container">
+        <input type="file" id="image-upload" accept="image/*">
+        <img id="image-preview" src="" alt="Image Preview">
+    </div>
+
+    <button id="predict-button">Predict</button>
+    <div id="result"></div>
 
     <script>
-        let model;
-        const classNames = ['MonkeyPox', 'Other']; // Correct class names based on your model
+        const imageUpload = document.getElementById('image-upload');
+        const imagePreview = document.getElementById('image-preview');
+        const predictButton = document.getElementById('predict-button');
+        const resultDiv = document.getElementById('result');
 
-        // Load the model
+        let model;
+
         async function loadModel() {
             model = await tf.loadLayersModel('monkeypox_model/model.json');
-            console.log('Model loaded');
         }
 
-        // Make a prediction
-        async function predict() {
-            const fileInput = document.getElementById('imageUpload');
-            const predictionResult = document.getElementById('predictionResult');
-
-            if (fileInput.files.length === 0) {
-                alert('Please upload an image first.');
-                return;
+        imageUpload.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                    resultDiv.textContent = ''; // Clear previous result
+                }
+                reader.readAsDataURL(file);
             }
+        });
 
-            const image = document.createElement('img');
-            image.src = URL.createObjectURL(fileInput.files[0]);
-            image.width = 300;
-            image.height = 300;
+        predictButton.addEventListener('click', async function() {
+            predictButton.classList.add('hidden'); // Hide button during prediction
+            resultDiv.textContent = 'Loading...'; // Show loading message
 
-            // Wait for the image to load
-            image.onload = async () => {
-                // Convert the image to a tensor
-                const tensor = tf.browser.fromPixels(image)
-                    .resizeNearestNeighbor([300, 300])
-                    .toFloat()
-                    .expandDims();
+            const image = tf.browser.fromPixels(imagePreview);
+            const resizedImage = tf.image.resizeBilinear(image, [224, 224]);
+            const normalizedImage = resizedImage.div(255.0).expandDims(0);
 
-                // Make a prediction
-                const predictions = await model.predict(tensor).data();
-                const predictedClassIndex = predictions.indexOf(Math.max(...predictions));
-                const predictedClassName = classNames[predictedClassIndex];
+            const predictions = await model.predict(normalizedImage).data();
+            const classNames = ['Class1', 'Class2', 'Class3']; // Replace with your actual class names
+            const predictedClass = classNames[predictions.indexOf(Math.max(...predictions))];
 
-                // Display the prediction result
-                predictionResult.textContent = `Predicted Class: ${predictedClassName}`;
-            };
-        }
+            resultDiv.textContent = `Prediction: ${predictedClass}`;
 
-        // Load the model when the page is ready
+            image.dispose();
+            resizedImage.dispose();
+            normalizedImage.dispose();
+
+            predictButton.classList.remove('hidden'); // Show button after prediction
+        });
+
         loadModel();
-
-        // Attach the predict function to the button
-        document.getElementById('predictButton').addEventListener('click', predict);
     </script>
+
 </body>
 </html>
+
