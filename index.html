@@ -3,106 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monkeypox Classification</title>
+    <title>MonkeyPox Classification</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
+            background-color: #f5f5f5;
             margin: 0;
             padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
         }
-        h1 {
-            color: #333;
-        }
-         #header {
-            background-color: #fff;
+
+        header {
+            background-color: #282c34;
             padding: 20px;
-            border-bottom: 2px solid #ddd;
+            text-align: center;
+            width: 100%;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+            margin-bottom: 40px;
         }
-        #header span {
-            font-weight: bold;
-            font-size: 24px;
+
+        header h1 {
+            margin: 0;
+            font-size: 36px;
+            color: white;
         }
-        #header .das {
-            color: #4CAF50; /* Green */
+
+        .das-green {
+            color: #28a745;
         }
-        #header .medhub {
-            color: #FF5722; /* Orange */
+
+        .medhub-orange {
+            color: #ff7f0e;
         }
-        #image-container {
+
+        h1 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        input[type="file"] {
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        #predictionResult {
             margin-top: 20px;
-        }
-        #image-preview {
-            max-width: 100%;
-            height: auto;
-            display: none;
-            margin-top: 10px;
-        }
-        #prediction-result {
-            margin-top: 20px;
-            font-size: 1.2em;
+            font-size: 20px;
+            color: #333;
         }
     </style>
 </head>
 <body>
-    <div id="header">
-        <span class="das">DAS</span><span class="medhub">medhub</span>
-    </div>
-    <h1>Monkeypox Image Classification</h1>
-    <input type="file" id="image-upload" accept="image/*" />
-    <div id="image-container">
-        <img id="image-preview" alt="Image Preview">
-    </div>
-    <div id="prediction-result"></div>
+    <header>
+        <h1><span class="das-green">DAS</span> <span class="medhub-orange">medhub</span></h1>
+    </header>
 
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <h1>MonkeyPox Classification</h1>
+    <input type="file" id="imageUpload" accept="image/*">
+    <button id="predictButton">Predict</button>
+    <p id="predictionResult"></p>
+
     <script>
         let model;
+        const classNames = ['MonkeyPox', 'Other']; // Correct class names based on your model
 
+        // Load the model
         async function loadModel() {
-            model = await tf.loadGraphModel('monkeypox_model/model.json');
+            model = await tf.loadLayersModel('model/model.json');
+            console.log('Model loaded');
         }
 
+        // Make a prediction
+        async function predict() {
+            const fileInput = document.getElementById('imageUpload');
+            const predictionResult = document.getElementById('predictionResult');
+
+            if (fileInput.files.length === 0) {
+                alert('Please upload an image first.');
+                return;
+            }
+
+            const image = document.createElement('img');
+            image.src = URL.createObjectURL(fileInput.files[0]);
+            image.width = 300;
+            image.height = 300;
+
+            // Wait for the image to load
+            image.onload = async () => {
+                // Convert the image to a tensor
+                const tensor = tf.browser.fromPixels(image)
+                    .resizeNearestNeighbor([300, 300])
+                    .toFloat()
+                    .expandDims();
+
+                // Make a prediction
+                const predictions = await model.predict(tensor).data();
+                const predictedClassIndex = predictions.indexOf(Math.max(...predictions));
+                const predictedClassName = classNames[predictedClassIndex];
+
+                // Display the prediction result
+                predictionResult.textContent = `Predicted Class: ${predictedClassName}`;
+            };
+        }
+
+        // Load the model when the page is ready
         loadModel();
 
-        const imageUpload = document.getElementById('image-upload');
-        const imagePreview = document.getElementById('image-preview');
-        const predictionResult = document.getElementById('prediction-result');
-
-        imageUpload.addEventListener('change', async (event) => {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    imagePreview.src = e.target.result;
-                    imagePreview.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-
-                const image = await loadImage(file);
-                const prediction = await makePrediction(image);
-                displayPrediction(prediction);
-            }
-        });
-
-        async function loadImage(file) {
-            const img = document.createElement('img');
-            img.src = URL.createObjectURL(file);
-            await img.decode();
-            return tf.browser.fromPixels(img).resizeBilinear([300, 300]).expandDims(0).toFloat().div(tf.scalar(255));
-        }
-
-        async function makePrediction(image) {
-            const predictions = await model.predict(image).data();
-            const classNames = ['MonkeyPox', 'Other'];
-            const maxIndex = predictions.indexOf(Math.max(...predictions));
-            return classNames[maxIndex];
-        }
-
-        function displayPrediction(prediction) {
-            predictionResult.textContent = `Predicted Class: ${prediction}`;
-        }
+        // Attach the predict function to the button
+        document.getElementById('predictButton').addEventListener('click', predict);
     </script>
 </body>
 </html>
-
