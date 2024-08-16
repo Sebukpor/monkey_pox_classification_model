@@ -5,11 +5,63 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monkeypox Prediction</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f9;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+        }
+        #imageUpload {
+            margin-bottom: 20px;
+        }
+        #imagePreview {
+            max-width: 100%;
+            height: auto;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #fff;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px 2px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background-color: #ddd;
+            cursor: not-allowed;
+        }
+        #loading {
+            display: none;
+            margin-top: 20px;
+            font-size: 18px;
+            color: #555;
+        }
+        #result {
+            font-size: 20px;
+            margin-top: 20px;
+            color: #333;
+        }
+    </style>
 </head>
 <body>
     <h1>Monkeypox Prediction Model</h1>
-    <input type="file" id="imageUpload" accept="image/*"/>
-    <button onclick="predict()">Predict</button>
+    <input type="file" id="imageUpload" accept="image/*" />
+    <button id="predictButton" onclick="predict()">Predict</button>
+    <p id="loading">Loading model, please wait...</p>
+    <img id="imagePreview" />
     <p id="result"></p>
 
     <script>
@@ -17,8 +69,9 @@
         const classNames = ['MonkeyPox', 'Other'];
 
         async function loadModel() {
-            // Load the model from the 'model' folder
+            document.getElementById('loading').style.display = 'block';
             model = await tf.loadGraphModel('monkeypox_model/model.json');
+            document.getElementById('loading').style.display = 'none';
             console.log('Model loaded');
         }
 
@@ -30,6 +83,10 @@
                 return;
             }
 
+            // Display the uploaded image
+            const imagePreview = document.getElementById('imagePreview');
+            imagePreview.src = URL.createObjectURL(file);
+
             // Read the image and create a tensor
             const img = await createImageBitmap(file);
             const tensor = tf.browser.fromPixels(img)
@@ -38,6 +95,11 @@
                 .toFloat()
                 .div(tf.scalar(255)); // Normalize to [0, 1]
 
+            // Disable button and show loading
+            const predictButton = document.getElementById('predictButton');
+            predictButton.disabled = true;
+            document.getElementById('loading').style.display = 'block';
+
             // Predict the class
             const prediction = model.predict(tensor);
             const classIdx = prediction.argMax(1).dataSync()[0];
@@ -45,6 +107,10 @@
 
             // Display the result
             document.getElementById('result').innerText = 'Predicted Class name: ' + className;
+
+            // Re-enable button and hide loading
+            predictButton.disabled = false;
+            document.getElementById('loading').style.display = 'none';
         }
 
         window.onload = loadModel;
