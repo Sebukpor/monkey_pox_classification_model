@@ -16,12 +16,27 @@
         h1 {
             color: #333;
         }
+        #header {
+            background-color: #fff;
+            padding: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+        #header span {
+            font-weight: bold;
+            font-size: 24px;
+        }
+        #header .das {
+            color: #4CAF50; /* Green */
+        }
+        #header .medhub {
+            color: #FF5722; /* Orange */
+        }
         #imageUpload {
             margin-bottom: 20px;
         }
         #imagePreview {
-            max-width: 50px;
-            height: 50px;
+            max-width: 300px;
+            height: 300px;
             margin-top: 20px;
             border: 1px solid #ddd;
             padding: 10px;
@@ -43,12 +58,6 @@
             background-color: #ddd;
             cursor: not-allowed;
         }
-        #loading {
-            display: none;
-            margin-top: 20px;
-            font-size: 18px;
-            color: #555;
-        }
         #result {
             font-size: 20px;
             margin-top: 20px;
@@ -57,10 +66,12 @@
     </style>
 </head>
 <body>
+    <div id="header">
+        <span class="das">DAS</span><span class="medhub">medhub</span>
+    </div>
     <h1>Monkeypox Prediction Model</h1>
     <input type="file" id="imageUpload" accept="image/*" />
     <button id="predictButton" onclick="predict()">Predict</button>
-    <p id="loading">...</p>
     <img id="imagePreview" />
     <p id="result"></p>
 
@@ -69,9 +80,7 @@
         const classNames = ['MonkeyPox', 'Other'];
 
         async function loadModel() {
-            document.getElementById('loading').style.display = 'block';
             model = await tf.loadGraphModel('monkeypox_model/model.json');
-            document.getElementById('loading').style.display = 'none';
             console.log('Model loaded');
         }
 
@@ -82,6 +91,10 @@
                 alert('Please upload an image!');
                 return;
             }
+
+            // Clear previous prediction result and image preview
+            document.getElementById('result').innerText = '';
+            document.getElementById('imagePreview').src = '';
 
             // Display the uploaded image
             const imagePreview = document.getElementById('imagePreview');
@@ -95,10 +108,9 @@
                 .toFloat()
                 .div(tf.scalar(255)); // Normalize to [0, 1]
 
-            // Disable button and show loading
+            // Disable button while predicting
             const predictButton = document.getElementById('predictButton');
             predictButton.disabled = true;
-            document.getElementById('loading').style.display = 'block';
 
             // Predict the class
             const prediction = model.predict(tensor);
@@ -108,12 +120,17 @@
             // Display the result
             document.getElementById('result').innerText = 'Predicted Class name: ' + className;
 
-            // Re-enable button and hide loading
+            // Re-enable button after prediction
             predictButton.disabled = false;
-            document.getElementById('loading').style.display = 'none';
         }
 
         window.onload = loadModel;
+
+        document.getElementById('imageUpload').addEventListener('change', () => {
+            // Clear previous prediction result and image preview when a new image is uploaded
+            document.getElementById('result').innerText = '';
+            document.getElementById('imagePreview').src = '';
+        });
     </script>
 </body>
 </html>
