@@ -36,7 +36,7 @@
         }
         #imagePreview {
             max-width: 300px;
-            height: 300px;
+            height: auto;
             margin-top: 20px;
             border: 1px solid #ddd;
             padding: 10px;
@@ -77,9 +77,7 @@
 
     <script>
         let model;
-
-        // Define possible class names that the model can predict
-        const classNames = ['MonkeyPox', 'Other'];
+        const classNames = ['MonkeyPox', 'Other']; // Define class names
 
         async function loadModel() {
             try {
@@ -124,10 +122,12 @@
 
                 // Predict the class
                 const prediction = model.predict(tensor);
-                const predictionClass = prediction.dataSync()[0]; // Directly get the predicted class name
-                
+                const yPred = prediction.dataSync();
+                const classIdx = yPred.indexOf(Math.max(...yPred)); // Get the index of the max value
+                const className = classNames[classIdx]; // Map index to class name
+
                 // Display the result
-                document.getElementById('result').innerText = 'Predicted Class name: ' + predictionClass;
+                document.getElementById('result').innerText = 'Predicted Class name: ' + className;
 
                 // Re-enable button after prediction
                 predictButton.disabled = false;
