@@ -77,11 +77,17 @@
 
     <script>
         let model;
+
+        // Define possible class names that the model can predict
         const classNames = ['MonkeyPox', 'Other'];
 
         async function loadModel() {
-            model = await tf.loadGraphModel('monkeypox_model/model.json');
-            console.log('Model loaded');
+            try {
+                model = await tf.loadGraphModel('monkeypox_model/model.json');
+                console.log('Model loaded successfully');
+            } catch (error) {
+                console.error('Error loading model:', error);
+            }
         }
 
         async function predict() {
@@ -101,27 +107,35 @@
             imagePreview.src = URL.createObjectURL(file);
 
             // Read the image and create a tensor
-            const img = await createImageBitmap(file);
-            const tensor = tf.browser.fromPixels(img)
-                .resizeBilinear([300, 300]) // Resize to 300x300
-                .expandDims(0) // Add batch dimension
-                .toFloat()
-                .div(tf.scalar(255)); // Normalize to [0, 1]
+            try {
+                const img = await createImageBitmap(file);
+                const tensor = tf.browser.fromPixels(img)
+                    .resizeBilinear([300, 300]) // Ensure this matches the model's expected input
+                    .expandDims(0) // Add batch dimension
+                    .toFloat()
+                    .div(tf.scalar(255)); // Normalize to [0, 1]
 
-            // Disable button while predicting
-            const predictButton = document.getElementById('predictButton');
-            predictButton.disabled = true;
+                // Check tensor shape
+                console.log('Tensor shape:', tensor.shape);
 
-            // Predict the class
-            const prediction = model.predict(tensor);
-            const classIdx = prediction.argMax(1).dataSync()[0];
-            const className = classNames[classIdx];
+                // Disable button while predicting
+                const predictButton = document.getElementById('predictButton');
+                predictButton.disabled = true;
 
-            // Display the result
-            document.getElementById('result').innerText = 'Predicted Class name: ' + className;
+                // Predict the class
+                const prediction = model.predict(tensor);
+                const predictionClass = prediction.dataSync()[0]; // Directly get the predicted class name
+                
+                // Display the result
+                document.getElementById('result').innerText = 'Predicted Class name: ' + predictionClass;
 
-            // Re-enable button after prediction
-            predictButton.disabled = false;
+                // Re-enable button after prediction
+                predictButton.disabled = false;
+            } catch (error) {
+                console.error('Error during prediction:', error);
+                document.getElementById('result').innerText = 'Error making prediction.';
+                document.getElementById('imagePreview').src = '';
+            }
         }
 
         window.onload = loadModel;
