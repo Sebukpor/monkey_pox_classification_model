@@ -112,7 +112,7 @@
             const normalizedImage = resizedImage.div(255.0).expandDims(0);
 
             const predictions = await model.predict(normalizedImage).data();
-            const classNames = ['Class1', 'Class2', 'Class3']; // Replace with your actual class names
+            const classNames = ['MonkeyPox','Other']; // Replace with your actual class names
             const predictedClass = classNames[predictions.indexOf(Math.max(...predictions))];
 
             resultDiv.textContent = `Prediction: ${predictedClass}`;
