@@ -121,9 +121,12 @@
                 predictButton.disabled = true;
 
                 // Predict the class
-                const prediction = model.predict(tensor);
-                const yPred = prediction.dataSync();
-                const classIdx = yPred.indexOf(Math.max(...yPred)); // Get the index of the max value
+                const prediction = await model.predict(tensor).data(); // Wait for prediction to resolve
+                console.log('Prediction:', prediction);
+
+                const classIdx = prediction.indexOf(Math.max(...prediction)); // Get the index of the max value
+                console.log('Predicted class index:', classIdx);
+
                 const className = classNames[classIdx]; // Map index to class name
 
                 // Display the result
