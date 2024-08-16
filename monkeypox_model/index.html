@@ -1,1 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monkeypox Prediction</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+</head>
+<body>
+    <h1>Monkeypox Prediction Model</h1>
+    <input type="file" id="imageUpload" accept="image/*"/>
+    <button onclick="predict()">Predict</button>
+    <p id="result"></p>
 
+    <script>
+        let model;
+        const classNames = ['MonkeyPox', 'Other'];
+
+        async function loadModel() {
+            // Load the model
+            model = await tf.loadGraphModel('./monkeypox_model_js/model.json');
+            console.log('Model loaded');
+        }
+
+        async function predict() {
+            const imageUpload = document.getElementById('imageUpload');
+            const file = imageUpload.files[0];
+            if (!file) {
+                alert('Please upload an image!');
+                return;
+            }
+
+            // Read the image and create a tensor
+            const img = await createImageBitmap(file);
+            const tensor = tf.browser.fromPixels(img)
+                .resizeBilinear([300, 300]) // Resize to 300x300
+                .expandDims(0) // Add batch dimension
+                .toFloat()
+                .div(tf.scalar(255)); // Normalize to [0, 1]
+
+            // Predict the class
+            const prediction = model.predict(tensor);
+            const classIdx = prediction.argMax(1).dataSync()[0];
+            const className = classNames[classIdx];
+
+            // Display the result
+            document.getElementById('result').innerText = 'Predicted Class name: ' + className;
+        }
+
+        window.onload = loadModel;
+    </script>
+</body>
+</html>
