@@ -1,0 +1,1 @@
+# monkey_pox_classification_model
