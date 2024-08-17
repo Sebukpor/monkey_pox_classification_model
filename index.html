@@ -3,131 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MonkeyPox Classification</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <title>Monkeypox Prediction</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.13.0/dist/tf.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-        }
-
-        header {
-            width: 100%;
-            background-color: #ffffff;
-            padding: 20px;
-            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        header h1 {
-            margin: 0;
-            font-size: 24px;
-        }
-
-        header h1 .das {
-            color: green;
-        }
-
-        header h1 .medhub {
-            color: orange;
-        }
-
-        #image-container {
-            margin-bottom: 20px;
-        }
-
-        #image-preview {
-            max-width: 300px;
-            max-height: 300px;
-            display: none;
-            border: 2px solid #ddd;
-            padding: 5px;
-            border-radius: 10px;
-        }
-
-        #result {
-            font-size: 18px;
-            color: #333;
-            margin-top: 20px;
-        }
-
-        .hidden {
-            display: none;
-        }
+        /* ... */
     </style>
 </head>
 <body>
-
-    <header>
-        <h1><span class="das">DAS</span> <span class="medhub">medhub</span></h1>
-    </header>
-    <h1>Monkey Pox Classification model</h1>
-
-    <div id="image-container">
-        <input type="file" id="image-upload" accept="image/*">
-        <img id="image-preview" src="" alt="Image Preview">
-    </div>
-
-    <button id="predict-button">Predict</button>
-    <div id="result"></div>
-
+    <!-- ... -->
     <script>
-        const imageUpload = document.getElementById('image-upload');
-        const imagePreview = document.getElementById('image-preview');
-        const predictButton = document.getElementById('predict-button');
-        const resultDiv = document.getElementById('result');
-
         let model;
+        const classNames = ['MonkeyPox', 'Other'];
 
         async function loadModel() {
-            model = await tf.loadLayersModel(monkeypox_model/model.json');
+            try {
+                model = await tf.loadGraphModel('monkeypox_model/model.json');
+                console.log('Model loaded successfully');
+            } catch (error) {
+                console.error('Error loading model:', error);
+            }
         }
 
-        imageUpload.addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    imagePreview.src = e.target.result;
-                    imagePreview.style.display = 'block';
-                    resultDiv.textContent = ''; // Clear previous result
-                }
-                reader.readAsDataURL(file);
+        async function predict() {
+            const imageUpload = document.getElementById('imageUpload');
+            const file = imageUpload.files[0];
+            if (!file || !file.type.startsWith('image/')) {
+                document.getElementById('result').innerText = 'Please upload a valid image file.';
+                return;
             }
+
+            // Clear previous prediction result and image preview
+            document.getElementById('result').innerText = '';
+            document.getElementById('imagePreview').src = '';
+
+            // Display the uploaded image
+            const imagePreview = document.getElementById('imagePreview');
+            const reader = new FileReader();
+            reader.onload = () => {
+                imagePreview.src = reader.result;
+            };
+            reader.readAsDataURL(file);
+
+            // Hide the Predict button
+            document.getElementById('predictButton').style.display = 'none';
+
+            // Read the image and create a tensor
+            try {
+                const img = await createImageBitmap(file);
+                const tensor = tf.browser.fromPixels(img, 4)
+                    .resizeBilinear([300, 300])
+                    .expandDims(0)
+                    .toFloat()
+                    .div(tf.scalar(255));
+
+                console.log('Tensor shape:', tensor.shape);
+
+                // Predict the class
+                const prediction = await model.predict(tensor).data();
+                console.log('Prediction:', prediction);
+
+                const classIdx = prediction.indexOf(Math.max(...prediction));
+                console.log('Predicted class index:', classIdx);
+
+                const className = classNames[classIdx];
+                document.getElementById('result').innerText = 'Predicted Class name: ' + className;
+            } catch (error) {
+                console.error('Error during prediction:', error);
+                document.getElementById('result').innerText = 'Error making prediction.';
+            } finally {
+                // Show the Predict button again after prediction is made
+                document.getElementById('predictButton').style.display = 'inline-block';
+                document.getElementById('imagePreview').src = ''; // Clear image preview
+            }
+        }
+
+        window.onload = loadModel;
+
+        document.getElementById('imageUpload').addEventListener('change', () => {
+            // Show the Predict button when a new image is uploaded
+            document.getElementById('predictButton').style.display = 'inline-block';
         });
-
-        predictButton.addEventListener('click', async function() {
-            predictButton.classList.add('hidden'); // Hide button during prediction
-            resultDiv.textContent = 'Loading...'; // Show loading message
-
-            const image = tf.browser.fromPixels(imagePreview);
-            const resizedImage = tf.image.resizeBilinear(image, [300, 300]);
-            const normalizedImage = resizedImage.div(255.0).expandDims(0);
-
-            const predictions = await model.predict(normalizedImage).data();
-            const classNames = ['MonkeyPox','Other']; // Replace with your actual class names
-            const predictedClass = classNames[predictions.indexOf(Math.max(...predictions))];
-
-            resultDiv.textContent = `Prediction: ${predictedClass}`;
-
-            image.dispose();
-            resizedImage.dispose();
-            normalizedImage.dispose();
-
-            predictButton.classList.remove('hidden'); // Show button after prediction
-        });
-
-        loadModel();
     </script>
-
 </body>
 </html>
-
