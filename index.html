@@ -6,7 +6,7 @@
     <title>MonkeyPox Classification</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <style>
-        body {
+       body {
             font-family: Arial, sans-serif;
             background-color: #f5f5f5;
             margin: 0;
@@ -65,17 +65,14 @@
     </style>
 </head>
 <body>
-
     <header>
         <h1><span class="das">DAS</span> <span class="medhub">medhub</span></h1>
     </header>
-
     <h1>Monkey Pox Classification</h1>
     <div id="image-container">
         <input type="file" id="image-upload" accept="image/*">
         <img id="image-preview" src="" alt="Image Preview">
     </div>
-
     <button id="predict-button">Predict</button>
     <div id="result"></div>
 
@@ -86,7 +83,7 @@
         // Load the TensorFlow.js model
         async function loadModel() {
             try {
-                model = await tf.loadLayersModel('monkeypox_model/model.json'); // Update with the correct path to your model
+                model = await tf.loadLayersModel('./monkeypox_model/model.json');
                 console.log('Model loaded successfully');
             } catch (error) {
                 console.error('Error loading the model:', error);
@@ -95,13 +92,14 @@
         }
 
         // Call loadModel when the page loads
-        window.onload = () => {
-            loadModel();
+        window.onload = async () => {
+            await loadModel();
         };
 
         async function predict() {
             const imageUpload = document.getElementById('image-upload');
             const file = imageUpload.files[0];
+
             if (!file || !file.type.startsWith('image/')) {
                 document.getElementById('result').innerText = 'Please upload a valid image file.';
                 return;
@@ -123,7 +121,6 @@
             // Hide the Predict button
             document.getElementById('predict-button').style.display = 'none';
 
-            // Read the image and create a tensor
             try {
                 const img = await createImageBitmap(file);
                 const tensor = tf.browser.fromPixels(img)
@@ -136,10 +133,9 @@
 
                 // Predict the class
                 const prediction = model.predict(tensor);
-                const classIdx = prediction.argMax(-1).dataSync()[0]; // Use argMax to get the class index
-                console.log('Predicted class index:', classIdx);
-
+                const classIdx = prediction.argMax(-1).dataSync()[0];
                 const className = classNames[classIdx];
+
                 document.getElementById('result').innerText = 'Predicted Class: ' + className;
             } catch (error) {
                 console.error('Error during prediction:', error);
