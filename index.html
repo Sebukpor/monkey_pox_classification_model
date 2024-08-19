@@ -30,6 +30,7 @@
         header h1 {
             margin: 0;
             font-size: 24px;
+            margin-top: 0;
         }
 
         header h1 .das {
@@ -83,7 +84,7 @@
         // Load the TensorFlow.js model
         async function loadModel() {
             try {
-                model = await tf.loadLayersModel('./monkeypox_model/model.json');
+                model = await tf.loadLayersModel('/monkeypox_model/model.json');
                 console.log('Model loaded successfully');
             } catch (error) {
                 console.error('Error loading the model:', error);
